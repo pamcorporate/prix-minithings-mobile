@@ -30,17 +30,13 @@ workflows:
         script: npm run assets
       - name: Copy web assets into the native project
         script: npx cap sync android
-      - name: Select JDK 21 for gradle
-        script: |
-          echo "=== JDKs in /Library/Java/JavaVirtualMachines ==="; ls -1 /Library/Java/JavaVirtualMachines/ 2>&1 || true
-          J=$(/usr/libexec/java_home -v 21 2>/dev/null || true)
-          [ -z "$J" ] && J=$(ls -d /Library/Java/JavaVirtualMachines/*21*/Contents/Home 2>/dev/null | head -1)
-          echo "RESOLVED_JDK21=[$J]"
-          if [ -n "$J" ]; then echo "org.gradle.java.home=$J" >> android/gradle.properties; echo "wrote org.gradle.java.home"; else echo "NO_JDK21_FOUND"; fi
       - name: Build debug APK (no signing needed)
         script: |
+          J=$(/usr/libexec/java_home -v 21 2>/dev/null || ls -d /Library/Java/JavaVirtualMachines/*21*/Contents/Home 2>/dev/null | head -1)
+          echo "Using JDK 21 at: $J"
+          export JAVA_HOME="$J"
           cd android
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$J"
     artifacts:
       - android/app/build/outputs/**/*.apk
 
@@ -74,9 +70,10 @@ workflows:
           sed -i "s/versionCode [0-9][0-9]*/versionCode $VC/" app/build.gradle
       - name: Build signed release AAB
         script: |
-          export JAVA_HOME=$(ls -d /Library/Java/JavaVirtualMachines/zulu-21*.jdk/Contents/Home 2>/dev/null | head -1); echo "JAVA_HOME=$JAVA_HOME"
+          J=$(/usr/libexec/java_home -v 21 2>/dev/null || ls -d /Library/Java/JavaVirtualMachines/*21*/Contents/Home 2>/dev/null | head -1)
+          export JAVA_HOME="$J"
           cd android
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease -Dorg.gradle.java.home="$J"
     artifacts:
       - android/app/build/outputs/**/*.aab
       - android/app/build/outputs/**/mapping.txt
