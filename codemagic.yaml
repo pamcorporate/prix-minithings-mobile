@@ -64,8 +64,8 @@ workflows:
           VN=$(node -p "require('./package.json').version")
           VC=$(( ${PROJECT_BUILD_NUMBER:-0} + 1 ))
           cd android
-          sed -i "s/versionName \"[^\"]*\"/versionName \"$VN\"/" app/build.gradle
-          sed -i "s/versionCode [0-9][0-9]*/versionCode $VC/" app/build.gradle
+          sed "s/versionName \"[^\"]*\"/versionName \"$VN\"/" app/build.gradle > app/build.gradle.tmp && mv app/build.gradle.tmp app/build.gradle
+          sed "s/versionCode [0-9][0-9]*/versionCode $VC/" app/build.gradle > app/build.gradle.tmp && mv app/build.gradle.tmp app/build.gradle
       - name: Wire the upload keystore into gradle
         script: |
           printf '\nandroid {\n  signingConfigs { release {\n    storeFile file(System.getenv("CM_KEYSTORE_PATH"))\n    storePassword System.getenv("CM_KEYSTORE_PASSWORD")\n    keyAlias System.getenv("CM_KEY_ALIAS")\n    keyPassword System.getenv("CM_KEY_PASSWORD")\n  } }\n  buildTypes { release { signingConfig signingConfigs.release } }\n}\n' >> android/app/build.gradle
