@@ -395,7 +395,7 @@
   #susplbl{font-size:10px;font-weight:900;color:#8a7fa3;letter-spacing:1.5px;margin-top:1px;}
   /* ===== LANDSCAPE / PC MODE ===== */
   #sidecol{display:contents;}
-  #app.land{max-width:min(1040px,97vw);}
+  #app.land{max-width:min(1040px,97vw);}@media (pointer:coarse){#app.land{max-width:100vw;}}
   #app.land main{display:grid;grid-template-columns:370px minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);grid-template-areas:"hd hd" "nw nw" "goal goal" "stage side";column-gap:12px;row-gap:8px;padding:8px 12px 10px;overflow:hidden;}
   #app.land main>header{grid-area:hd;margin:0;display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:6px;padding:8px 14px;border-radius:12px;}
   #app.land .brandrow{flex:1 1 100%;order:1;}
@@ -2253,7 +2253,7 @@ document.querySelectorAll('.spd .sbtn').forEach(b=>{b.onclick=()=>{G.speed=parse
 $('newsline').addEventListener('animationiteration',()=>{$('newsline').textContent=newsQueue||NEWS[Math.floor(Math.random()*NEWS.length)];newsQueue=null;});
 buildOldMan();recalcExcuse();recalcAll();renderRefer();render();
 function setLayout(mode){var app=$('app');if(!app)return;var land=(mode==='land');app.classList.toggle('land',land);var b=$('modebtn');if(b){b.textContent=land?'📱':'🖥️';b.title=land?'Switch to phone (portrait) layout':'Switch to PC (landscape) layout';}try{localStorage.setItem('pm_layout',mode);}catch(e){}requestAnimationFrame(function(){try{updateFab();}catch(e){}});}
-(function(){var saved=null;try{saved=localStorage.getItem('pm_layout');}catch(e){}var def=saved||((window.innerWidth>window.innerHeight&&window.innerWidth>=860)?'land':'portrait');setLayout(def);var b=$('modebtn');if(b)b.onclick=function(){setLayout($('app').classList.contains('land')?'portrait':'land');};})();
+(function(){var saved=null;try{saved=localStorage.getItem('pm_layout');}catch(e){}var coarse=(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)||('ontouchstart' in window)||!!window.Capacitor;function autoL(){return (window.innerWidth>window.innerHeight)?'land':'portrait';}var def=coarse?autoL():(saved||((window.innerWidth>window.innerHeight&&window.innerWidth>=860)?'land':'portrait'));setLayout(def);var b=$('modebtn');if(b)b.onclick=function(){setLayout($('app').classList.contains('land')?'portrait':'land');};if(coarse){var _last=def,_rt;function _ap(){var l=autoL();if(l!==_last){_last=l;setLayout(l);}}window.addEventListener('orientationchange',function(){clearTimeout(_rt);_rt=setTimeout(_ap,250);});window.addEventListener('resize',function(){clearTimeout(_rt);_rt=setTimeout(_ap,300);});}})();
 /* ===== walkthrough tour ===== */
 const TOUR=[
  {t:'mantap',h:'👆 Tap to steal cash',b:'Tap Old-Timer Stan to appraise his collection and pocket the cash. Tap him a lot.'},
