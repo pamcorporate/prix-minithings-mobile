@@ -1,0 +1,101 @@
+# Codemagic CI/CD - Prix & MiniThings (Capacitor 8)
+# Builds the Android .aab and iOS .ipa in the cloud. No Mac required.
+#
+# ONE-TIME SETUP in the Codemagic UI (your accounts, done once):
+#   1. Add application -> connect this Git repo.
+#   2. Integrations -> App Store Connect: add an API key (Issuer ID + Key ID + .p8).
+#      Name it "prix_asc_key" (matches `integrations.app_store_connect` below).
+#   3. Code signing identities -> Android keystores: upload your upload keystore,
+#      reference name "prix_upload" (matches `android_signing` below).
+#   4. Environment variables -> group "google_play": add GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+#      (Google Play service-account JSON) for publishing to the internal track.
+#
+# The native ios/ and android/ folders are generated here each run (npx cap add),
+# so they are intentionally NOT in the repo.
+
+workflows:
+
+  android:
+    name: Prix & MiniThings - Android
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - prix_upload                       # keystore reference from the Codemagic UI
+      groups:
+        - google_play                       # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      vars:
+        PACKAGE_NAME: "com.pamcorporate.prixminithings"
+      node: 22
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Generate native Android project
+        script: npx cap add android
+      - name: Generate icons and splash from assets/
+        script: npm run assets
+      - name: Copy web assets into the native project
+        script: npx cap sync android
+      - name: Set versionName and versionCode
+        script: |
+          VN=$(node -p "require('./package.json').version")
+          VC=$(( ${PROJECT_BUILD_NUMBER:-0} + 1 ))
+          cd android
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$VN\"/" app/build.gradle
+          sed -i "s/versionCode [0-9][0-9]*/versionCode $VC/" app/build.gradle
+      - name: Build signed release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      # Enable after the first signed build verifies in the UI:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  ios:
+    name: Prix & MiniThings - iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: prix_asc_key       # API key name from the Codemagic UI
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.pamcorporate.prixminithings
+      vars:
+        BUNDLE_ID: "com.pamcorporate.prixminithings"
+      node: 22
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Generate native iOS project
+        script: npx cap add ios
+      - name: Generate icons and splash from assets/
+        script: npm run assets
+      - name: Copy web assets into the native project
+        script: npx cap sync ios
+      - name: Set build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(( ${BUILD_NUMBER:-0} + 1 ))
+      - name: Fetch signing profiles
+        script: xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
