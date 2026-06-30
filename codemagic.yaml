@@ -32,6 +32,8 @@ workflows:
         script: npx cap sync android
       - name: Build debug APK (no signing needed)
         script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+          java -version
           cd android
           ./gradlew assembleDebug
     artifacts:
@@ -67,6 +69,7 @@ workflows:
           sed -i "s/versionCode [0-9][0-9]*/versionCode $VC/" app/build.gradle
       - name: Build signed release AAB
         script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
           cd android
           ./gradlew bundleRelease
     artifacts:
