@@ -10,7 +10,7 @@
       "launchAutoHide": true,
       "backgroundColor": "#08060f",
       "showSpinner": false,
-      "androidScaleType": "CENTER_CROP",
+      "androidScaleType": "FIT_CENTER",
       "splashFullScreen": true,
       "splashImmersive": true
     },
